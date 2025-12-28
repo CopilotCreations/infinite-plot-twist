@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Story Web</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="title">Infinite Story Web</h1>
+            <p class="subtitle">Every interaction shapes the narrative</p>
+        </header>
+
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <div class="control-group">
+                <label for="genre-select">Genre:</label>
+                <select id="genre-select" class="control-select">
+                    <option value="fantasy">Fantasy</option>
+                    <option value="scifi">Sci-Fi</option>
+                    <option value="horror">Horror</option>
+                    <option value="romance">Romance</option>
+                    <option value="adventure">Adventure</option>
+                    <option value="mystery">Mystery</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="mood-select">Mood:</label>
+                <select id="mood-select" class="control-select">
+                    <option value="mysterious">Mysterious</option>
+                    <option value="adventurous">Adventurous</option>
+                    <option value="dark">Dark</option>
+                    <option value="whimsical">Whimsical</option>
+                    <option value="romantic">Romantic</option>
+                    <option value="suspenseful">Suspenseful</option>
+                    <option value="philosophical">Philosophical</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <button id="new-story-btn" class="control-btn primary">New Story</button>
+                <button id="merge-btn" class="control-btn secondary">Find Storylines</button>
+            </div>
+        </div>
+
+        <!-- Story Context Display -->
+        <div class="context-display">
+            <span class="context-item" id="context-genre">Genre: --</span>
+            <span class="context-item" id="context-mood">Mood: --</span>
+            <span class="context-item" id="context-tension">Tension: --</span>
+            <span class="context-item" id="context-length">Words: 0</span>
+        </div>
+
+        <!-- Main Story Container -->
+        <main class="story-container" id="story-container">
+            <div class="story-content" id="story-content">
+                <p class="story-placeholder">Click "New Story" to begin your infinite narrative...</p>
+            </div>
+            <div class="story-loading" id="story-loading">
+                <span class="loading-dot"></span>
+                <span class="loading-dot"></span>
+                <span class="loading-dot"></span>
+            </div>
+        </main>
+
+        <!-- Merge Panel (initially hidden) -->
+        <div class="merge-panel hidden" id="merge-panel">
+            <h3>Available Storylines</h3>
+            <div class="merge-list" id="merge-list">
+                <p class="no-storylines">No other storylines available</p>
+            </div>
+            <button id="close-merge-btn" class="control-btn">Close</button>
+        </div>
+
+        <!-- Merge Notification -->
+        <div class="merge-notification hidden" id="merge-notification">
+            <p>Someone wants to merge their story with yours!</p>
+            <div class="merge-actions">
+                <button id="accept-merge-btn" class="control-btn primary">Accept</button>
+                <button id="reject-merge-btn" class="control-btn secondary">Reject</button>
+            </div>
+        </div>
+
+        <!-- Interaction Hint -->
+        <div class="interaction-hint">
+            <p>Scroll, click, or press keys to evolve the story</p>
+            <p class="hint-keys">
+                <span>M - Mysterious</span>
+                <span>A - Adventurous</span>
+                <span>D - Dark</span>
+                <span>W - Whimsical</span>
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Infinite Story Web &copy; 2024 | An endless narrative experiment</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
