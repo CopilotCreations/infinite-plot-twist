@@ -18,7 +18,11 @@ from src.backend.server import create_app
 
 @pytest.fixture
 def app():
-    """Create a test application instance."""
+    """Create a test application instance.
+
+    Yields:
+        Flask: A configured Flask application instance for testing.
+    """
     test_config = {
         'TESTING': True,
         'DATABASE_URL': 'sqlite:///:memory:',
@@ -31,13 +35,27 @@ def app():
 
 @pytest.fixture
 def client(app):
-    """Create a test client."""
+    """Create a test client.
+
+    Args:
+        app: The Flask application fixture.
+
+    Returns:
+        FlaskClient: A test client for making HTTP requests.
+    """
     return app.test_client()
 
 
 @pytest.fixture
 def session_id(client):
-    """Create a session and return the session ID."""
+    """Create a session and return the session ID.
+
+    Args:
+        client: The Flask test client fixture.
+
+    Returns:
+        str: The session ID from the created session.
+    """
     response = client.post('/api/session')
     data = json.loads(response.data)
     return data['session_id']
@@ -47,13 +65,21 @@ class TestHealthEndpoint:
     """Tests for the health check endpoint."""
 
     def test_health_returns_200(self, client):
-        """Test that health endpoint returns 200."""
+        """Test that health endpoint returns 200.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.get('/api/health')
         
         assert response.status_code == 200
 
     def test_health_returns_healthy_status(self, client):
-        """Test that health endpoint returns healthy status."""
+        """Test that health endpoint returns healthy status.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.get('/api/health')
         data = json.loads(response.data)
         
@@ -65,7 +91,11 @@ class TestSessionEndpoints:
     """Tests for session management endpoints."""
 
     def test_create_session(self, client):
-        """Test creating a new session."""
+        """Test creating a new session.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.post('/api/session')
         
         assert response.status_code == 200
@@ -74,7 +104,12 @@ class TestSessionEndpoints:
         assert 'user_id' in data
 
     def test_get_session(self, client, session_id):
-        """Test getting session information."""
+        """Test getting session information.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         response = client.get(f'/api/session/{session_id}')
         
         assert response.status_code == 200
@@ -83,7 +118,11 @@ class TestSessionEndpoints:
         assert data['user']['session_id'] == session_id
 
     def test_get_session_not_found(self, client):
-        """Test getting a non-existent session."""
+        """Test getting a non-existent session.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.get('/api/session/nonexistent-session')
         
         assert response.status_code == 404
@@ -93,7 +132,12 @@ class TestStoryEndpoints:
     """Tests for story management endpoints."""
 
     def test_start_story(self, client, session_id):
-        """Test starting a new story."""
+        """Test starting a new story.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         response = client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
             content_type='application/json'
@@ -106,7 +150,11 @@ class TestStoryEndpoints:
         assert data['segment']['content'] is not None
 
     def test_start_story_without_session(self, client):
-        """Test starting a story without session ID."""
+        """Test starting a story without session ID.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.post('/api/story/start',
             data=json.dumps({}),
             content_type='application/json'
@@ -115,7 +163,11 @@ class TestStoryEndpoints:
         assert response.status_code == 400
 
     def test_start_story_invalid_session(self, client):
-        """Test starting a story with invalid session."""
+        """Test starting a story with invalid session.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.post('/api/story/start',
             data=json.dumps({'session_id': 'invalid-session'}),
             content_type='application/json'
@@ -124,7 +176,12 @@ class TestStoryEndpoints:
         assert response.status_code == 404
 
     def test_continue_story(self, client, session_id):
-        """Test continuing a story."""
+        """Test continuing a story.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         # Start story first
         client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
@@ -146,7 +203,11 @@ class TestStoryEndpoints:
         assert 'context' in data
 
     def test_continue_story_without_session(self, client):
-        """Test continuing a story without session ID."""
+        """Test continuing a story without session ID.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.post('/api/story/continue',
             data=json.dumps({}),
             content_type='application/json'
@@ -155,7 +216,12 @@ class TestStoryEndpoints:
         assert response.status_code == 400
 
     def test_continue_story_with_scroll_interaction(self, client, session_id):
-        """Test continuing a story with scroll interaction."""
+        """Test continuing a story with scroll interaction.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
             content_type='application/json'
@@ -172,7 +238,12 @@ class TestStoryEndpoints:
         assert response.status_code == 200
 
     def test_continue_story_with_keypress_interaction(self, client, session_id):
-        """Test continuing a story with keypress interaction."""
+        """Test continuing a story with keypress interaction.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
             content_type='application/json'
@@ -189,7 +260,12 @@ class TestStoryEndpoints:
         assert response.status_code == 200
 
     def test_get_story(self, client, session_id):
-        """Test getting the full story."""
+        """Test getting the full story.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         # Start and continue story
         client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
@@ -208,7 +284,12 @@ class TestStoryEndpoints:
         assert len(data['segments']) >= 1
 
     def test_get_story_with_pagination(self, client, session_id):
-        """Test getting story with pagination parameters."""
+        """Test getting story with pagination parameters.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
             content_type='application/json'
@@ -219,7 +300,11 @@ class TestStoryEndpoints:
         assert response.status_code == 200
 
     def test_get_story_invalid_session(self, client):
-        """Test getting story with invalid session."""
+        """Test getting story with invalid session.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.get('/api/story/invalid-session')
         
         assert response.status_code == 404
@@ -229,7 +314,12 @@ class TestMoodAndGenreEndpoints:
     """Tests for mood and genre control endpoints."""
 
     def test_set_mood(self, client, session_id):
-        """Test setting story mood."""
+        """Test setting story mood.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         # Start story first
         client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
@@ -250,7 +340,12 @@ class TestMoodAndGenreEndpoints:
         assert data['context']['mood'] == 'dark'
 
     def test_set_mood_invalid(self, client, session_id):
-        """Test setting an invalid mood."""
+        """Test setting an invalid mood.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
             content_type='application/json'
@@ -267,7 +362,11 @@ class TestMoodAndGenreEndpoints:
         assert response.status_code == 400
 
     def test_set_mood_without_story(self, client):
-        """Test setting mood without a generator (fresh session)."""
+        """Test setting mood without a generator (fresh session).
+
+        Args:
+            client: The Flask test client fixture.
+        """
         # Use a session ID that doesn't have an active generator
         response = client.post('/api/story/mood',
             data=json.dumps({
@@ -281,7 +380,11 @@ class TestMoodAndGenreEndpoints:
         assert response.status_code == 404
 
     def test_set_mood_missing_params(self, client):
-        """Test setting mood with missing parameters."""
+        """Test setting mood with missing parameters.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.post('/api/story/mood',
             data=json.dumps({}),
             content_type='application/json'
@@ -290,7 +393,12 @@ class TestMoodAndGenreEndpoints:
         assert response.status_code == 400
 
     def test_set_genre(self, client, session_id):
-        """Test setting story genre."""
+        """Test setting story genre.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
             content_type='application/json'
@@ -310,7 +418,12 @@ class TestMoodAndGenreEndpoints:
         assert data['context']['genre'] == 'scifi'
 
     def test_set_genre_invalid(self, client, session_id):
-        """Test setting an invalid genre."""
+        """Test setting an invalid genre.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
             content_type='application/json'
@@ -327,7 +440,11 @@ class TestMoodAndGenreEndpoints:
         assert response.status_code == 400
 
     def test_set_genre_missing_params(self, client):
-        """Test setting genre with missing parameters."""
+        """Test setting genre with missing parameters.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.post('/api/story/genre',
             data=json.dumps({}),
             content_type='application/json'
@@ -340,7 +457,12 @@ class TestActiveUsersEndpoint:
     """Tests for active users endpoint."""
 
     def test_get_active_users(self, client, session_id):
-        """Test getting active users."""
+        """Test getting active users.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         response = client.get('/api/users/active')
         
         assert response.status_code == 200
@@ -349,7 +471,12 @@ class TestActiveUsersEndpoint:
         assert 'count' in data
 
     def test_get_active_users_with_minutes(self, client, session_id):
-        """Test getting active users with custom time range."""
+        """Test getting active users with custom time range.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         response = client.get('/api/users/active?minutes=60')
         
         assert response.status_code == 200
@@ -359,7 +486,11 @@ class TestMergeEndpoints:
     """Tests for merge-related endpoints."""
 
     def test_request_merge(self, client):
-        """Test requesting a merge."""
+        """Test requesting a merge.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         # Create two sessions
         response1 = client.post('/api/session')
         session1 = json.loads(response1.data)['session_id']
@@ -387,7 +518,11 @@ class TestMergeEndpoints:
         assert 'merge_request' in data
 
     def test_request_merge_missing_params(self, client):
-        """Test requesting a merge with missing parameters."""
+        """Test requesting a merge with missing parameters.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.post('/api/merge/request',
             data=json.dumps({}),
             content_type='application/json'
@@ -396,7 +531,12 @@ class TestMergeEndpoints:
         assert response.status_code == 400
 
     def test_request_merge_invalid_session(self, client, session_id):
-        """Test requesting a merge with invalid session."""
+        """Test requesting a merge with invalid session.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         response = client.post('/api/merge/request',
             data=json.dumps({
                 'session_id': 'invalid',
@@ -408,7 +548,12 @@ class TestMergeEndpoints:
         assert response.status_code == 404
 
     def test_get_pending_merges(self, client, session_id):
-        """Test getting pending merge requests."""
+        """Test getting pending merge requests.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         response = client.get(f'/api/merge/pending/{session_id}')
         
         assert response.status_code == 200
@@ -416,13 +561,21 @@ class TestMergeEndpoints:
         assert 'requests' in data
 
     def test_get_pending_merges_invalid_session(self, client):
-        """Test getting pending merges with invalid session."""
+        """Test getting pending merges with invalid session.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.get('/api/merge/pending/invalid-session')
         
         assert response.status_code == 404
 
     def test_accept_merge(self, client):
-        """Test accepting a merge request."""
+        """Test accepting a merge request.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         # Create two sessions
         response1 = client.post('/api/session')
         session1 = json.loads(response1.data)['session_id']
@@ -466,7 +619,11 @@ class TestMergeEndpoints:
         assert data['segment']['is_merged'] is True
 
     def test_accept_merge_missing_params(self, client):
-        """Test accepting a merge with missing parameters."""
+        """Test accepting a merge with missing parameters.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.post('/api/merge/accept',
             data=json.dumps({}),
             content_type='application/json'
@@ -479,7 +636,12 @@ class TestInteractionsEndpoint:
     """Tests for interactions endpoint."""
 
     def test_get_interactions(self, client, session_id):
-        """Test getting interaction history."""
+        """Test getting interaction history.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         # Start story and create some interactions
         client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
@@ -501,7 +663,12 @@ class TestInteractionsEndpoint:
         assert 'counts' in data
 
     def test_get_interactions_with_limit(self, client, session_id):
-        """Test getting interactions with limit."""
+        """Test getting interactions with limit.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         client.post('/api/story/start',
             data=json.dumps({'session_id': session_id}),
             content_type='application/json'
@@ -512,7 +679,11 @@ class TestInteractionsEndpoint:
         assert response.status_code == 200
 
     def test_get_interactions_invalid_session(self, client):
-        """Test getting interactions with invalid session."""
+        """Test getting interactions with invalid session.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.get('/api/interactions/invalid-session')
         
         assert response.status_code == 404
@@ -522,7 +693,11 @@ class TestStaticFiles:
     """Tests for static file serving."""
 
     def test_index_page(self, client):
-        """Test that index page is served."""
+        """Test that index page is served.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         # This may return 404 in test environment without static files
         # but we're testing the route exists
         response = client.get('/')
@@ -534,7 +709,11 @@ class TestErrorHandling:
     """Tests for error handling."""
 
     def test_empty_json_body(self, client):
-        """Test handling of empty JSON body."""
+        """Test handling of empty JSON body.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.post('/api/story/start',
             data='',
             content_type='application/json'
@@ -544,7 +723,11 @@ class TestErrorHandling:
         assert response.status_code in [400, 500]
 
     def test_invalid_json_body(self, client):
-        """Test handling of invalid JSON."""
+        """Test handling of invalid JSON.
+
+        Args:
+            client: The Flask test client fixture.
+        """
         response = client.post('/api/story/start',
             data='not valid json',
             content_type='application/json'
@@ -554,7 +737,12 @@ class TestErrorHandling:
         assert response.status_code in [400, 500]
 
     def test_no_content_type(self, client, session_id):
-        """Test handling of missing content type."""
+        """Test handling of missing content type.
+
+        Args:
+            client: The Flask test client fixture.
+            session_id: The session ID fixture.
+        """
         response = client.post('/api/story/start',
             data=json.dumps({'session_id': session_id})
         )

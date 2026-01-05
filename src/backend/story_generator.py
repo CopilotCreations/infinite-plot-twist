@@ -199,7 +199,12 @@ class StoryGenerator:
         self.context = self._create_initial_context()
 
     def _create_initial_context(self) -> StoryContext:
-        """Create initial story context."""
+        """Create initial story context.
+
+        Returns:
+            StoryContext: A new story context with randomized initial values
+                including mood, genre, a starting character and location.
+        """
         return StoryContext(
             current_mood=random.choice(list(Mood)),
             genre=random.choice(list(Genre)),
@@ -212,7 +217,14 @@ class StoryGenerator:
         )
 
     def generate_opening(self) -> str:
-        """Generate an opening for a new story."""
+        """Generate an opening for a new story.
+
+        Creates a story opening based on the current genre, introducing
+        a character and location. Updates the context with new elements.
+
+        Returns:
+            str: The opening segment of the story.
+        """
         opening = random.choice(self.OPENINGS[self.context.genre])
         character = random.choice(self.CHARACTERS)
         location = random.choice(self.LOCATIONS)
@@ -228,12 +240,19 @@ class StoryGenerator:
 
     def generate_segment(self, interaction_data: Optional[Dict[str, Any]] = None) -> str:
         """Generate a new story segment based on current context and interactions.
-        
+
+        Builds a story segment incorporating transitions, tension modifiers,
+        character actions, and potentially new story elements. The segment
+        is influenced by the current mood, tension level, and any user
+        interaction data provided.
+
         Args:
-            interaction_data: Optional data about user interactions
-            
+            interaction_data: Optional dictionary containing user interaction
+                information. Supported keys include 'type' (scroll, click,
+                keypress) and type-specific data like 'amount' or 'key'.
+
         Returns:
-            A new story segment
+            str: A new story segment continuing the narrative.
         """
         # Apply interaction influence
         if interaction_data:
@@ -283,9 +302,16 @@ class StoryGenerator:
 
     def _apply_interaction_influence(self, data: Dict[str, Any]) -> None:
         """Apply user interaction influence to story generation.
-        
+
+        Modifies the story context based on user interactions:
+        - scroll: Increases tension with significant scroll amounts
+        - click: May introduce new locations
+        - keypress: Changes mood based on key pressed (m, a, d, w, r, s, p)
+
         Args:
-            data: Interaction data including type and details
+            data: Dictionary containing interaction data with 'type' key
+                and type-specific details (e.g., 'amount' for scroll,
+                'key' for keypress).
         """
         interaction_type = data.get('type', '')
         
@@ -318,7 +344,12 @@ class StoryGenerator:
                 self.context.current_mood = mood_map[key.lower()]
 
     def _evolve_context(self) -> None:
-        """Naturally evolve the story context over time."""
+        """Naturally evolve the story context over time.
+
+        Applies random changes to the story context to create organic
+        narrative evolution. Mood may shift randomly (15% chance), tension
+        oscillates within bounds, and genre may rarely change (5% chance).
+        """
         # Mood might shift randomly
         if random.random() > 0.85:
             self.context.current_mood = random.choice(list(Mood))
@@ -333,12 +364,19 @@ class StoryGenerator:
 
     def merge_storylines(self, other_segments: List[str]) -> str:
         """Merge segments from another storyline into the current one.
-        
+
+        Creates a narrative bridge between two storylines by selecting
+        a segment from the other storyline and incorporating it with
+        a merge transition. Records the merge event in recent_events.
+
         Args:
-            other_segments: Story segments from another user's storyline
-            
+            other_segments: List of story segments from another user's
+                storyline to potentially merge with the current story.
+
         Returns:
-            A merged story segment
+            str: A merged story segment combining elements from both
+                storylines, or a regular segment if no other segments
+                are provided.
         """
         if not other_segments:
             return self.generate_segment()
@@ -371,7 +409,17 @@ class StoryGenerator:
         return merged
 
     def get_context_summary(self) -> Dict[str, Any]:
-        """Get a summary of the current story context."""
+        """Get a summary of the current story context.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing:
+                - mood: Current mood value as string
+                - genre: Current genre value as string
+                - characters: List of unique characters in the story
+                - locations: List of unique locations in the story
+                - tension_level: Current tension level (0.0 to 1.0)
+                - story_length: Total word count of generated story
+        """
         return {
             'mood': self.context.current_mood.value,
             'genre': self.context.genre.value,
@@ -383,12 +431,15 @@ class StoryGenerator:
 
     def set_mood(self, mood: str) -> bool:
         """Set the story mood.
-        
+
         Args:
-            mood: Mood name to set
-            
+            mood: The mood name to set. Must be a valid Mood enum value
+                (mysterious, adventurous, dark, whimsical, romantic,
+                suspenseful, philosophical).
+
         Returns:
-            True if mood was set successfully
+            bool: True if the mood was set successfully, False if the
+                provided mood value is invalid.
         """
         try:
             self.context.current_mood = Mood(mood)
@@ -398,12 +449,14 @@ class StoryGenerator:
 
     def set_genre(self, genre: str) -> bool:
         """Set the story genre.
-        
+
         Args:
-            genre: Genre name to set
-            
+            genre: The genre name to set. Must be a valid Genre enum value
+                (fantasy, scifi, horror, romance, adventure, mystery).
+
         Returns:
-            True if genre was set successfully
+            bool: True if the genre was set successfully, False if the
+                provided genre value is invalid.
         """
         try:
             self.context.genre = Genre(genre)
@@ -412,5 +465,10 @@ class StoryGenerator:
             return False
 
     def reset(self) -> None:
-        """Reset the story generator to initial state."""
+        """Reset the story generator to initial state.
+
+        Clears all story progress and creates a fresh context with
+        new randomized initial values for mood, genre, characters,
+        and locations.
+        """
         self.context = self._create_initial_context()

@@ -79,17 +79,32 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/')
     def index():
-        """Serve the main page."""
+        """Serve the main page.
+
+        Returns:
+            Response: The index.html file from the static folder.
+        """
         return send_from_directory(app.static_folder, 'index.html')
     
     @app.route('/api/health')
     def health():
-        """Health check endpoint."""
+        """Health check endpoint.
+
+        Returns:
+            Response: JSON with status and current timestamp.
+        """
         return jsonify({'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()})
     
     @app.route('/api/session', methods=['POST'])
     def create_session():
-        """Create a new user session."""
+        """Create a new user session.
+
+        Creates a unique session ID, registers a new user in the database,
+        and initializes a story generator for the session.
+
+        Returns:
+            Response: JSON with session_id and user_id.
+        """
         session_id = str(uuid.uuid4())
         user = app.db.create_user(session_id)
         
@@ -103,7 +118,15 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/api/session/<session_id>')
     def get_session(session_id: str):
-        """Get session information."""
+        """Get session information.
+
+        Args:
+            session_id: The unique session identifier.
+
+        Returns:
+            Response: JSON with user data and story context, or 404 error
+                if session not found.
+        """
         user = app.db.get_user_by_session(session_id)
         if not user:
             return jsonify({'error': 'Session not found'}), 404
@@ -118,7 +141,15 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/api/story/start', methods=['POST'])
     def start_story():
-        """Start a new story."""
+        """Start a new story.
+
+        Expects JSON body with session_id. Resets the story generator
+        and creates an opening segment.
+
+        Returns:
+            Response: JSON with the new segment and context, or error
+                if session is invalid.
+        """
         data = request.get_json() or {}
         session_id = data.get('session_id')
         
@@ -153,7 +184,15 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/api/story/continue', methods=['POST'])
     def continue_story():
-        """Continue the story with a new segment."""
+        """Continue the story with a new segment.
+
+        Expects JSON body with session_id and optional interaction data.
+        Generates a new story segment based on user interaction.
+
+        Returns:
+            Response: JSON with the new segment and context, or error
+                if session is invalid.
+        """
         data = request.get_json() or {}
         session_id = data.get('session_id')
         interaction = data.get('interaction')
@@ -204,7 +243,16 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/api/story/<session_id>')
     def get_story(session_id: str):
-        """Get the full story for a session."""
+        """Get the full story for a session.
+
+        Args:
+            session_id: The unique session identifier.
+
+        Returns:
+            Response: JSON with segments list and context, or 404 error
+                if session not found. Supports pagination via query params
+                'limit' (default 50) and 'offset' (default 0).
+        """
         user = app.db.get_user_by_session(session_id)
         if not user:
             return jsonify({'error': 'Invalid session'}), 404
@@ -224,7 +272,15 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/api/story/mood', methods=['POST'])
     def set_mood():
-        """Set the story mood."""
+        """Set the story mood.
+
+        Expects JSON body with session_id and mood. Updates the story
+        generator's mood setting.
+
+        Returns:
+            Response: JSON with success status and updated context, or
+                error if session/mood is invalid.
+        """
         data = request.get_json() or {}
         session_id = data.get('session_id')
         mood = data.get('mood')
@@ -243,7 +299,15 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/api/story/genre', methods=['POST'])
     def set_genre():
-        """Set the story genre."""
+        """Set the story genre.
+
+        Expects JSON body with session_id and genre. Updates the story
+        generator's genre setting.
+
+        Returns:
+            Response: JSON with success status and updated context, or
+                error if session/genre is invalid.
+        """
         data = request.get_json() or {}
         session_id = data.get('session_id')
         genre = data.get('genre')
@@ -262,7 +326,13 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/api/users/active')
     def get_active_users():
-        """Get list of active users for potential merging."""
+        """Get list of active users for potential merging.
+
+        Returns:
+            Response: JSON with users list and count. Supports optional
+                query param 'minutes' (default 5) to filter by activity
+                window.
+        """
         minutes = request.args.get('minutes', 5, type=int)
         users = app.db.get_active_users(minutes=minutes)
         return jsonify({
@@ -272,7 +342,15 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/api/merge/request', methods=['POST'])
     def request_merge():
-        """Request to merge storylines with another user."""
+        """Request to merge storylines with another user.
+
+        Expects JSON body with session_id and target_session_id. Creates
+        a merge request from the source user to the target user.
+
+        Returns:
+            Response: JSON with merge_request data, or error if sessions
+                are invalid or no story exists to merge.
+        """
         data = request.get_json() or {}
         session_id = data.get('session_id')
         target_session_id = data.get('target_session_id')
@@ -300,7 +378,15 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/api/merge/pending/<session_id>')
     def get_pending_merges(session_id: str):
-        """Get pending merge requests for a user."""
+        """Get pending merge requests for a user.
+
+        Args:
+            session_id: The unique session identifier.
+
+        Returns:
+            Response: JSON with list of pending merge requests, or 404
+                error if session not found.
+        """
         user = app.db.get_user_by_session(session_id)
         if not user:
             return jsonify({'error': 'Invalid session'}), 404
@@ -312,7 +398,15 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/api/merge/accept', methods=['POST'])
     def accept_merge():
-        """Accept a merge request and combine storylines."""
+        """Accept a merge request and combine storylines.
+
+        Expects JSON body with session_id and request_id. Resolves the
+        merge request and generates a combined story segment.
+
+        Returns:
+            Response: JSON with the merged segment and context, or error
+                if session/request is invalid.
+        """
         data = request.get_json() or {}
         session_id = data.get('session_id')
         request_id = data.get('request_id')
@@ -363,7 +457,16 @@ def register_routes(app: Flask) -> None:
     
     @app.route('/api/interactions/<session_id>')
     def get_interactions(session_id: str):
-        """Get interaction history for a session."""
+        """Get interaction history for a session.
+
+        Args:
+            session_id: The unique session identifier.
+
+        Returns:
+            Response: JSON with interactions list and counts, or 404
+                error if session not found. Supports optional query
+                param 'limit' (default 10).
+        """
         user = app.db.get_user_by_session(session_id)
         if not user:
             return jsonify({'error': 'Invalid session'}), 404
@@ -388,12 +491,19 @@ def register_socket_events(socketio: SocketIO, app: Flask) -> None:
     
     @socketio.on('connect')
     def handle_connect():
-        """Handle client connection."""
+        """Handle client connection.
+
+        Emits a 'connected' event to the client upon successful connection.
+        """
         emit('connected', {'status': 'connected'})
     
     @socketio.on('join_story')
     def handle_join(data):
-        """Join a story room for real-time updates."""
+        """Join a story room for real-time updates.
+
+        Args:
+            data: Dictionary containing 'session_id' to join.
+        """
         session_id = data.get('session_id')
         if session_id:
             join_room(session_id)
@@ -401,7 +511,11 @@ def register_socket_events(socketio: SocketIO, app: Flask) -> None:
     
     @socketio.on('leave_story')
     def handle_leave(data):
-        """Leave a story room."""
+        """Leave a story room.
+
+        Args:
+            data: Dictionary containing 'session_id' to leave.
+        """
         session_id = data.get('session_id')
         if session_id:
             leave_room(session_id)
@@ -409,7 +523,15 @@ def register_socket_events(socketio: SocketIO, app: Flask) -> None:
     
     @socketio.on('interaction')
     def handle_interaction(data):
-        """Handle real-time interaction and generate story update."""
+        """Handle real-time interaction and generate story update.
+
+        Args:
+            data: Dictionary containing 'session_id' and optional
+                'interaction' data for story generation.
+
+        Emits 'story_update' with new segment to the session room,
+        or 'error' if session is invalid.
+        """
         session_id = data.get('session_id')
         interaction = data.get('interaction')
         
@@ -457,7 +579,12 @@ def register_socket_events(socketio: SocketIO, app: Flask) -> None:
     
     @socketio.on('merge_notification')
     def handle_merge_notification(data):
-        """Notify a user about a merge request."""
+        """Notify a user about a merge request.
+
+        Args:
+            data: Dictionary containing 'target_session_id' and merge
+                request details to forward.
+        """
         target_session_id = data.get('target_session_id')
         if target_session_id:
             emit('merge_request', data, room=target_session_id)

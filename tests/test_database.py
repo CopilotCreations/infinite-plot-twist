@@ -22,7 +22,12 @@ from src.database.models import (
 
 @pytest.fixture
 def db_manager():
-    """Create a temporary database for testing."""
+    """Create a temporary database for testing.
+
+    Yields:
+        DatabaseManager: A database manager instance connected to a
+            temporary SQLite database that is cleaned up after use.
+    """
     # Use a temporary file for SQLite
     fd, path = tempfile.mkstemp(suffix='.db')
     os.close(fd)
@@ -42,7 +47,14 @@ def db_manager():
 
 @pytest.fixture
 def sample_user(db_manager):
-    """Create a sample user for testing."""
+    """Create a sample user for testing.
+
+    Args:
+        db_manager: The database manager fixture.
+
+    Returns:
+        User: A test user with session ID 'test-session-123'.
+    """
     return db_manager.create_user("test-session-123")
 
 
@@ -50,25 +62,45 @@ class TestDatabaseManagerInit:
     """Tests for DatabaseManager initialization."""
 
     def test_init_creates_engine(self, db_manager):
-        """Test that initialization creates a database engine."""
+        """Test that initialization creates a database engine.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         assert db_manager.engine is not None
 
     def test_init_creates_session_factory(self, db_manager):
-        """Test that initialization creates a session factory."""
+        """Test that initialization creates a session factory.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         assert db_manager.Session is not None
 
     def test_create_tables(self, db_manager):
-        """Test that create_tables works without error."""
+        """Test that create_tables works without error.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         db_manager.create_tables()
         # If we get here without exception, tables were created
 
     def test_drop_tables(self, db_manager):
-        """Test that drop_tables works without error."""
+        """Test that drop_tables works without error.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         db_manager.drop_tables()
         db_manager.create_tables()  # Recreate for other tests
 
     def test_get_session(self, db_manager):
-        """Test getting a database session."""
+        """Test getting a database session.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         session = db_manager.get_session()
         assert session is not None
         session.close()
@@ -78,7 +110,11 @@ class TestUserOperations:
     """Tests for user CRUD operations."""
 
     def test_create_user(self, db_manager):
-        """Test creating a new user."""
+        """Test creating a new user.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         user = db_manager.create_user("new-session-456")
         
         assert user is not None
@@ -87,33 +123,56 @@ class TestUserOperations:
         assert user.created_at is not None
 
     def test_get_user_by_session(self, db_manager, sample_user):
-        """Test retrieving a user by session ID."""
+        """Test retrieving a user by session ID.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         user = db_manager.get_user_by_session("test-session-123")
         
         assert user is not None
         assert user.session_id == "test-session-123"
 
     def test_get_user_by_session_not_found(self, db_manager):
-        """Test retrieving a non-existent user by session ID."""
+        """Test retrieving a non-existent user by session ID.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         user = db_manager.get_user_by_session("nonexistent-session")
         
         assert user is None
 
     def test_get_user_by_id(self, db_manager, sample_user):
-        """Test retrieving a user by ID."""
+        """Test retrieving a user by ID.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         user = db_manager.get_user_by_id(sample_user.id)
         
         assert user is not None
         assert user.id == sample_user.id
 
     def test_get_user_by_id_not_found(self, db_manager):
-        """Test retrieving a non-existent user by ID."""
+        """Test retrieving a non-existent user by ID.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         user = db_manager.get_user_by_id("nonexistent-id")
         
         assert user is None
 
     def test_update_user_activity(self, db_manager, sample_user):
-        """Test updating user activity timestamp."""
+        """Test updating user activity timestamp.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         original_time = sample_user.last_active
         
         # Wait a moment and update
@@ -124,14 +183,24 @@ class TestUserOperations:
         assert user is not None
 
     def test_get_active_users(self, db_manager, sample_user):
-        """Test getting active users."""
+        """Test getting active users.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         users = db_manager.get_active_users(minutes=60)
         
         assert len(users) >= 1
         assert any(u.id == sample_user.id for u in users)
 
     def test_delete_user_data(self, db_manager, sample_user):
-        """Test deleting user data."""
+        """Test deleting user data.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         user_id = sample_user.id
         
         result = db_manager.delete_user_data(user_id)
@@ -140,7 +209,11 @@ class TestUserOperations:
         assert db_manager.get_user_by_id(user_id) is None
 
     def test_delete_user_data_not_found(self, db_manager):
-        """Test deleting non-existent user data."""
+        """Test deleting non-existent user data.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         result = db_manager.delete_user_data("nonexistent-id")
         
         assert result is False
@@ -150,7 +223,12 @@ class TestStorySegmentOperations:
     """Tests for story segment CRUD operations."""
 
     def test_create_story_segment(self, db_manager, sample_user):
-        """Test creating a story segment."""
+        """Test creating a story segment.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         segment = db_manager.create_story_segment(
             user_id=sample_user.id,
             content="Once upon a time...",
@@ -164,7 +242,12 @@ class TestStorySegmentOperations:
         assert segment.user_id == sample_user.id
 
     def test_create_story_segment_with_parent(self, db_manager, sample_user):
-        """Test creating a story segment with a parent."""
+        """Test creating a story segment with a parent.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         parent = db_manager.create_story_segment(
             user_id=sample_user.id,
             content="Parent segment",
@@ -181,7 +264,12 @@ class TestStorySegmentOperations:
         assert child.parent_id == parent.id
 
     def test_create_merged_segment(self, db_manager, sample_user):
-        """Test creating a merged story segment."""
+        """Test creating a merged story segment.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         segment = db_manager.create_story_segment(
             user_id=sample_user.id,
             content="Merged content",
@@ -194,7 +282,12 @@ class TestStorySegmentOperations:
         # Note: merged_from is stored as JSON string in DB
 
     def test_get_story_segments(self, db_manager, sample_user):
-        """Test getting story segments for a user."""
+        """Test getting story segments for a user.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         # Create multiple segments
         for i in range(5):
             db_manager.create_story_segment(
@@ -210,7 +303,12 @@ class TestStorySegmentOperations:
         assert segments[4].sequence_number == 4
 
     def test_get_story_segments_with_limit(self, db_manager, sample_user):
-        """Test getting story segments with limit."""
+        """Test getting story segments with limit.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         for i in range(10):
             db_manager.create_story_segment(
                 user_id=sample_user.id,
@@ -223,7 +321,12 @@ class TestStorySegmentOperations:
         assert len(segments) == 3
 
     def test_get_story_segments_with_offset(self, db_manager, sample_user):
-        """Test getting story segments with offset."""
+        """Test getting story segments with offset.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         for i in range(10):
             db_manager.create_story_segment(
                 user_id=sample_user.id,
@@ -237,7 +340,12 @@ class TestStorySegmentOperations:
         assert segments[0].sequence_number == 5
 
     def test_get_latest_segment(self, db_manager, sample_user):
-        """Test getting the latest story segment."""
+        """Test getting the latest story segment.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         for i in range(5):
             db_manager.create_story_segment(
                 user_id=sample_user.id,
@@ -251,13 +359,23 @@ class TestStorySegmentOperations:
         assert latest.sequence_number == 4
 
     def test_get_latest_segment_none(self, db_manager, sample_user):
-        """Test getting latest segment when none exist."""
+        """Test getting latest segment when none exist.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         latest = db_manager.get_latest_segment(sample_user.id)
         
         assert latest is None
 
     def test_get_segment_by_id(self, db_manager, sample_user):
-        """Test getting a segment by ID."""
+        """Test getting a segment by ID.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         created = db_manager.create_story_segment(
             user_id=sample_user.id,
             content="Test content",
@@ -270,13 +388,22 @@ class TestStorySegmentOperations:
         assert segment.id == created.id
 
     def test_get_segment_by_id_not_found(self, db_manager):
-        """Test getting a non-existent segment."""
+        """Test getting a non-existent segment.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         segment = db_manager.get_segment_by_id("nonexistent-id")
         
         assert segment is None
 
     def test_get_full_story(self, db_manager, sample_user):
-        """Test getting the full story text."""
+        """Test getting the full story text.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         db_manager.create_story_segment(
             user_id=sample_user.id, content="Once upon a time", sequence_number=0
         )
@@ -296,7 +423,12 @@ class TestInteractionOperations:
     """Tests for interaction CRUD operations."""
 
     def test_record_interaction(self, db_manager, sample_user):
-        """Test recording an interaction."""
+        """Test recording an interaction.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         interaction = db_manager.record_interaction(
             user_id=sample_user.id,
             interaction_type="click",
@@ -308,7 +440,12 @@ class TestInteractionOperations:
         assert interaction.user_id == sample_user.id
 
     def test_record_interaction_without_data(self, db_manager, sample_user):
-        """Test recording an interaction without data."""
+        """Test recording an interaction without data.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         interaction = db_manager.record_interaction(
             user_id=sample_user.id,
             interaction_type="scroll"
@@ -318,7 +455,12 @@ class TestInteractionOperations:
         assert interaction.data is None
 
     def test_get_recent_interactions(self, db_manager, sample_user):
-        """Test getting recent interactions."""
+        """Test getting recent interactions.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         for i in range(5):
             db_manager.record_interaction(
                 user_id=sample_user.id,
@@ -330,7 +472,12 @@ class TestInteractionOperations:
         assert len(interactions) == 5
 
     def test_get_recent_interactions_with_limit(self, db_manager, sample_user):
-        """Test getting recent interactions with limit."""
+        """Test getting recent interactions with limit.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         for i in range(10):
             db_manager.record_interaction(
                 user_id=sample_user.id,
@@ -342,7 +489,12 @@ class TestInteractionOperations:
         assert len(interactions) == 3
 
     def test_get_interaction_counts(self, db_manager, sample_user):
-        """Test getting interaction counts by type."""
+        """Test getting interaction counts by type.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         for _ in range(3):
             db_manager.record_interaction(
                 user_id=sample_user.id, interaction_type="click"
@@ -367,7 +519,11 @@ class TestMergeRequestOperations:
     """Tests for merge request CRUD operations."""
 
     def test_create_merge_request(self, db_manager):
-        """Test creating a merge request."""
+        """Test creating a merge request.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         user1 = db_manager.create_user("session-1")
         user2 = db_manager.create_user("session-2")
         segment = db_manager.create_story_segment(
@@ -386,7 +542,11 @@ class TestMergeRequestOperations:
         assert merge_request.target_user_id == user2.id
 
     def test_get_pending_merge_requests(self, db_manager):
-        """Test getting pending merge requests."""
+        """Test getting pending merge requests.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         user1 = db_manager.create_user("session-1")
         user2 = db_manager.create_user("session-2")
         segment = db_manager.create_story_segment(
@@ -405,7 +565,11 @@ class TestMergeRequestOperations:
         assert requests[0].target_user_id == user2.id
 
     def test_resolve_merge_request_accept(self, db_manager):
-        """Test accepting a merge request."""
+        """Test accepting a merge request.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         user1 = db_manager.create_user("session-1")
         user2 = db_manager.create_user("session-2")
         segment = db_manager.create_story_segment(
@@ -425,7 +589,11 @@ class TestMergeRequestOperations:
         assert resolved.resolved_at is not None
 
     def test_resolve_merge_request_reject(self, db_manager):
-        """Test rejecting a merge request."""
+        """Test rejecting a merge request.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         user1 = db_manager.create_user("session-1")
         user2 = db_manager.create_user("session-2")
         segment = db_manager.create_story_segment(
@@ -444,7 +612,11 @@ class TestMergeRequestOperations:
         assert resolved.status == "rejected"
 
     def test_resolve_merge_request_not_found(self, db_manager):
-        """Test resolving a non-existent merge request."""
+        """Test resolving a non-existent merge request.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         resolved = db_manager.resolve_merge_request("nonexistent-id", accepted=True)
         
         assert resolved is None
@@ -454,7 +626,12 @@ class TestModelToDictMethods:
     """Tests for model to_dict conversion methods."""
 
     def test_user_to_dict(self, db_manager, sample_user):
-        """Test User.to_dict() method."""
+        """Test User.to_dict() method.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         user_dict = sample_user.to_dict()
         
         assert 'id' in user_dict
@@ -464,7 +641,12 @@ class TestModelToDictMethods:
         assert user_dict['session_id'] == "test-session-123"
 
     def test_story_segment_to_dict(self, db_manager, sample_user):
-        """Test StorySegment.to_dict() method."""
+        """Test StorySegment.to_dict() method.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         segment = db_manager.create_story_segment(
             user_id=sample_user.id,
             content="Test content",
@@ -480,7 +662,12 @@ class TestModelToDictMethods:
         assert segment_dict['content'] == "Test content"
 
     def test_interaction_to_dict(self, db_manager, sample_user):
-        """Test Interaction.to_dict() method."""
+        """Test Interaction.to_dict() method.
+
+        Args:
+            db_manager: The database manager fixture.
+            sample_user: The sample user fixture.
+        """
         interaction = db_manager.record_interaction(
             user_id=sample_user.id,
             interaction_type="click",
@@ -496,7 +683,11 @@ class TestModelToDictMethods:
         assert interaction_dict['interaction_type'] == "click"
 
     def test_merge_request_to_dict(self, db_manager):
-        """Test MergeRequest.to_dict() method."""
+        """Test MergeRequest.to_dict() method.
+
+        Args:
+            db_manager: The database manager fixture.
+        """
         user1 = db_manager.create_user("session-1")
         user2 = db_manager.create_user("session-2")
         segment = db_manager.create_story_segment(

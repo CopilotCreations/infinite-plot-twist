@@ -31,7 +31,12 @@ class User(Base):
     interactions = relationship("Interaction", back_populates="user", cascade="all, delete-orphan")
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert user to dictionary representation."""
+        """Convert user to dictionary representation.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing user id, session_id,
+                created_at, and last_active timestamps.
+        """
         return {
             'id': self.id,
             'session_id': self.session_id,
@@ -57,7 +62,12 @@ class StorySegment(Base):
     parent = relationship("StorySegment", remote_side=[id], backref="children")
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert story segment to dictionary representation."""
+        """Convert story segment to dictionary representation.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing segment id, user_id, content,
+                sequence_number, parent_id, is_merged, merged_from, and created_at.
+        """
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -83,7 +93,12 @@ class Interaction(Base):
     user = relationship("User", back_populates="interactions")
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert interaction to dictionary representation."""
+        """Convert interaction to dictionary representation.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing interaction id, user_id,
+                interaction_type, data, and timestamp.
+        """
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -106,7 +121,12 @@ class MergeRequest(Base):
     resolved_at = Column(DateTime, nullable=True)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert merge request to dictionary representation."""
+        """Convert merge request to dictionary representation.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing merge request id, source_user_id,
+                target_user_id, source_segment_id, status, created_at, and resolved_at.
+        """
         return {
             'id': self.id,
             'source_user_id': self.source_user_id,
@@ -131,20 +151,39 @@ class DatabaseManager:
         self.Session = sessionmaker(bind=self.engine)
         
     def create_tables(self) -> None:
-        """Create all database tables."""
+        """Create all database tables.
+
+        Creates all tables defined in the SQLAlchemy Base metadata
+        if they do not already exist.
+        """
         Base.metadata.create_all(self.engine)
 
     def drop_tables(self) -> None:
-        """Drop all database tables."""
+        """Drop all database tables.
+
+        Drops all tables defined in the SQLAlchemy Base metadata.
+        Warning: This will delete all data in the database.
+        """
         Base.metadata.drop_all(self.engine)
 
     def get_session(self):
-        """Get a new database session."""
+        """Get a new database session.
+
+        Returns:
+            Session: A new SQLAlchemy session instance for database operations.
+        """
         return self.Session()
 
     # User operations
     def create_user(self, session_id: str) -> User:
-        """Create a new user with the given session ID."""
+        """Create a new user with the given session ID.
+
+        Args:
+            session_id: Unique session identifier for the user.
+
+        Returns:
+            User: The newly created user instance.
+        """
         session = self.get_session()
         try:
             user = User(session_id=session_id)
@@ -156,7 +195,14 @@ class DatabaseManager:
             session.close()
 
     def get_user_by_session(self, session_id: str) -> Optional[User]:
-        """Get a user by their session ID."""
+        """Get a user by their session ID.
+
+        Args:
+            session_id: The session identifier to search for.
+
+        Returns:
+            Optional[User]: The user if found, None otherwise.
+        """
         session = self.get_session()
         try:
             return session.query(User).filter(User.session_id == session_id).first()
@@ -164,7 +210,14 @@ class DatabaseManager:
             session.close()
 
     def get_user_by_id(self, user_id: str) -> Optional[User]:
-        """Get a user by their ID."""
+        """Get a user by their ID.
+
+        Args:
+            user_id: The unique user identifier to search for.
+
+        Returns:
+            Optional[User]: The user if found, None otherwise.
+        """
         session = self.get_session()
         try:
             return session.query(User).filter(User.id == user_id).first()
@@ -172,7 +225,11 @@ class DatabaseManager:
             session.close()
 
     def update_user_activity(self, user_id: str) -> None:
-        """Update the last active timestamp for a user."""
+        """Update the last active timestamp for a user.
+
+        Args:
+            user_id: The unique user identifier to update.
+        """
         session = self.get_session()
         try:
             user = session.query(User).filter(User.id == user_id).first()
@@ -183,7 +240,14 @@ class DatabaseManager:
             session.close()
 
     def get_active_users(self, minutes: int = 5) -> List[User]:
-        """Get users active within the last N minutes."""
+        """Get users active within the last N minutes.
+
+        Args:
+            minutes: Number of minutes to look back for activity. Defaults to 5.
+
+        Returns:
+            List[User]: List of users who were active within the specified time.
+        """
         session = self.get_session()
         try:
             cutoff = datetime.utcnow() - __import__('datetime').timedelta(minutes=minutes)
@@ -195,7 +259,19 @@ class DatabaseManager:
     def create_story_segment(self, user_id: str, content: str, 
                             sequence_number: int, parent_id: Optional[str] = None,
                             is_merged: bool = False, merged_from: Optional[List[str]] = None) -> StorySegment:
-        """Create a new story segment."""
+        """Create a new story segment.
+
+        Args:
+            user_id: The ID of the user creating the segment.
+            content: The text content of the story segment.
+            sequence_number: The position of this segment in the story sequence.
+            parent_id: Optional ID of the parent segment for branching stories.
+            is_merged: Whether this segment is a result of merging. Defaults to False.
+            merged_from: Optional list of segment IDs that were merged to create this.
+
+        Returns:
+            StorySegment: The newly created story segment instance.
+        """
         session = self.get_session()
         try:
             segment = StorySegment(
@@ -214,7 +290,16 @@ class DatabaseManager:
             session.close()
 
     def get_story_segments(self, user_id: str, limit: int = 50, offset: int = 0) -> List[StorySegment]:
-        """Get story segments for a user."""
+        """Get story segments for a user.
+
+        Args:
+            user_id: The ID of the user whose segments to retrieve.
+            limit: Maximum number of segments to return. Defaults to 50.
+            offset: Number of segments to skip for pagination. Defaults to 0.
+
+        Returns:
+            List[StorySegment]: List of story segments ordered by sequence number.
+        """
         session = self.get_session()
         try:
             return session.query(StorySegment)\
@@ -227,7 +312,15 @@ class DatabaseManager:
             session.close()
 
     def get_latest_segment(self, user_id: str) -> Optional[StorySegment]:
-        """Get the latest story segment for a user."""
+        """Get the latest story segment for a user.
+
+        Args:
+            user_id: The ID of the user whose latest segment to retrieve.
+
+        Returns:
+            Optional[StorySegment]: The most recent segment by sequence number,
+                or None if no segments exist.
+        """
         session = self.get_session()
         try:
             return session.query(StorySegment)\
@@ -238,7 +331,14 @@ class DatabaseManager:
             session.close()
 
     def get_segment_by_id(self, segment_id: str) -> Optional[StorySegment]:
-        """Get a story segment by ID."""
+        """Get a story segment by ID.
+
+        Args:
+            segment_id: The unique identifier of the segment to retrieve.
+
+        Returns:
+            Optional[StorySegment]: The segment if found, None otherwise.
+        """
         session = self.get_session()
         try:
             return session.query(StorySegment).filter(StorySegment.id == segment_id).first()
@@ -246,14 +346,30 @@ class DatabaseManager:
             session.close()
 
     def get_full_story(self, user_id: str) -> str:
-        """Get the full story text for a user."""
+        """Get the full story text for a user.
+
+        Args:
+            user_id: The ID of the user whose full story to retrieve.
+
+        Returns:
+            str: The concatenated content of all story segments joined by spaces.
+        """
         segments = self.get_story_segments(user_id, limit=1000)
         return ' '.join(segment.content for segment in segments)
 
     # Interaction operations
     def record_interaction(self, user_id: str, interaction_type: str, 
                           data: Optional[Dict[str, Any]] = None) -> Interaction:
-        """Record a user interaction."""
+        """Record a user interaction.
+
+        Args:
+            user_id: The ID of the user performing the interaction.
+            interaction_type: The type of interaction (e.g., 'scroll', 'click', 'keypress').
+            data: Optional dictionary containing additional interaction details.
+
+        Returns:
+            Interaction: The newly created interaction instance.
+        """
         session = self.get_session()
         try:
             interaction = Interaction(
@@ -269,7 +385,15 @@ class DatabaseManager:
             session.close()
 
     def get_recent_interactions(self, user_id: str, limit: int = 10) -> List[Interaction]:
-        """Get recent interactions for a user."""
+        """Get recent interactions for a user.
+
+        Args:
+            user_id: The ID of the user whose interactions to retrieve.
+            limit: Maximum number of interactions to return. Defaults to 10.
+
+        Returns:
+            List[Interaction]: List of interactions ordered by timestamp descending.
+        """
         session = self.get_session()
         try:
             return session.query(Interaction)\
@@ -281,7 +405,14 @@ class DatabaseManager:
             session.close()
 
     def get_interaction_counts(self, user_id: str) -> Dict[str, int]:
-        """Get interaction counts by type for a user."""
+        """Get interaction counts by type for a user.
+
+        Args:
+            user_id: The ID of the user whose interaction counts to retrieve.
+
+        Returns:
+            Dict[str, int]: Dictionary mapping interaction types to their counts.
+        """
         session = self.get_session()
         try:
             interactions = session.query(Interaction)\
@@ -297,7 +428,16 @@ class DatabaseManager:
     # Merge request operations
     def create_merge_request(self, source_user_id: str, target_user_id: str, 
                             source_segment_id: str) -> MergeRequest:
-        """Create a new merge request."""
+        """Create a new merge request.
+
+        Args:
+            source_user_id: The ID of the user initiating the merge request.
+            target_user_id: The ID of the user receiving the merge request.
+            source_segment_id: The ID of the story segment to be merged.
+
+        Returns:
+            MergeRequest: The newly created merge request instance.
+        """
         session = self.get_session()
         try:
             merge_request = MergeRequest(
@@ -313,7 +453,14 @@ class DatabaseManager:
             session.close()
 
     def get_pending_merge_requests(self, user_id: str) -> List[MergeRequest]:
-        """Get pending merge requests for a user."""
+        """Get pending merge requests for a user.
+
+        Args:
+            user_id: The ID of the target user to get pending requests for.
+
+        Returns:
+            List[MergeRequest]: List of pending merge requests targeting this user.
+        """
         session = self.get_session()
         try:
             return session.query(MergeRequest)\
@@ -324,7 +471,15 @@ class DatabaseManager:
             session.close()
 
     def resolve_merge_request(self, request_id: str, accepted: bool) -> Optional[MergeRequest]:
-        """Resolve a merge request."""
+        """Resolve a merge request.
+
+        Args:
+            request_id: The unique identifier of the merge request to resolve.
+            accepted: True to accept the merge, False to reject it.
+
+        Returns:
+            Optional[MergeRequest]: The updated merge request if found, None otherwise.
+        """
         session = self.get_session()
         try:
             merge_request = session.query(MergeRequest)\
@@ -340,7 +495,17 @@ class DatabaseManager:
             session.close()
 
     def delete_user_data(self, user_id: str) -> bool:
-        """Delete all data for a user."""
+        """Delete all data for a user.
+
+        Deletes the user and all associated data including story segments,
+        interactions, and merge requests due to cascade delete.
+
+        Args:
+            user_id: The unique identifier of the user to delete.
+
+        Returns:
+            bool: True if the user was found and deleted, False otherwise.
+        """
         session = self.get_session()
         try:
             user = session.query(User).filter(User.id == user_id).first()

@@ -21,7 +21,19 @@ from src.backend.server import app, socketio
 
 
 def main():
-    """Run the Infinite Story Web application."""
+    """Run the Infinite Story Web application.
+
+    Initializes and starts the Flask server with WebSocket support.
+    Server configuration is read from environment variables.
+
+    Environment Variables:
+        HOST: The host address to bind to. Defaults to '0.0.0.0'.
+        PORT: The port number to listen on. Defaults to 5000.
+        FLASK_DEBUG: Set to '1' to enable debug mode. Defaults to '0'.
+
+    Returns:
+        None
+    """
     host = os.environ.get('HOST', '0.0.0.0')
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_DEBUG', '0') == '1'
